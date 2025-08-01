@@ -1,8 +1,5 @@
 import "dotenv/config";
 import express from "express";
-import { handleSignUp, handleSignIn, requireAuth } from "./routes/auth-new";
-import cookieParser from "cookie-parser";
-import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import {
   getAllProfiles,
@@ -47,31 +44,30 @@ function calculateCompatibilityScore(user1Prefs: any, user2Prefs: any): number {
 
   // Social level compatibility (weight: 20%)
   const socialScore: { [key: string]: number } = {'very-social': 3, 'moderately-social': 2, 'quiet': 1};
+// import { handleSignUp, handleSignIn, requireAuth } from "./routes/auth";
+// import cookieParser from "cookie-parser";
   const user1Social = socialScore[user1Prefs.socialLevel] || 2;
   const user2Social = socialScore[user2Prefs.socialLevel] || 2;
   const socialDiff = Math.abs(user1Social - user2Social);
   score += Math.max(0, 20 - (socialDiff * 10));
   totalFactors += 20;
 
-  // Work schedule compatibility (weight: 15%)
   if (user1Prefs.workSchedule === user2Prefs.workSchedule) {
     score += 15;
   } else if (user1Prefs.workSchedule === 'flexible' || user2Prefs.workSchedule === 'flexible') {
     score += 10;
   } else {
-    score += 5;
+    // Sign in and sign up routes removed
+    // Admin/dashboard auth protection removed
+    if (user1Prefs.lifestyle === user2Prefs.lifestyle) {
+      score += 20;
+    } else if (user1Prefs.lifestyle === 'balanced' || user2Prefs.lifestyle === 'balanced') {
+      score += 12;
+    } else {
+      score += 5;
+    }
+    totalFactors += 20;
   }
-  totalFactors += 15;
-
-  // Lifestyle compatibility (weight: 20%)
-  if (user1Prefs.lifestyle === user2Prefs.lifestyle) {
-    score += 20;
-  } else if (user1Prefs.lifestyle === 'balanced' || user2Prefs.lifestyle === 'balanced') {
-    score += 12;
-  } else {
-    score += 5;
-  }
-  totalFactors += 20;
 
   return Math.round((score / totalFactors) * 100);
 }
@@ -214,32 +210,12 @@ function generateEnhancedMatch(request: any): any {
   };
 }
 
-export function createServer() {
+function createServer() {
   const app = express();
   app.use(express.json());
-  app.use(cookieParser());
+  
 
-  // Middleware
-  app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
-
-  // Example API routes
-  app.post("/api/signup", handleSignUp);
-  app.post("/api/signin", handleSignIn);
-  // Protect admin/dashboard routes
-  app.use("/api/admin", requireAuth);
-  app.use("/api/dashboard", requireAuth);
-
-  // Protect admin/dashboard routes
-  app.use("/api/admin", requireAuth);
-  app.use("/api/dashboard", requireAuth);
-  app.get("/api/ping", (_req, res) => {
-    const ping = process.env.PING_MESSAGE ?? "ping";
-    res.json({ message: ping });
-  });
-
-  app.get("/api/demo", handleDemo);
+;
 
   // Profile management routes
   app.get("/api/profiles", getAllProfiles);
@@ -402,4 +378,6 @@ export function createServer() {
   app.put("/api/profile", updateProfile);
 
   return app;
-}
+} 
+
+export { createServer };
